@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ValidatedObligation, normalizeAndValidate } from './normalizer';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -31,16 +31,14 @@ Input text: "${input}"`;
 export async function parseUnstructuredTextWithGemini(text: string): Promise<ValidatedObligation> {
   if (!API_KEY) throw new Error("VITE_GEMINI_API_KEY is not defined in .env.local");
 
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const ai = new GoogleGenerativeAI(API_KEY);
 
   let rawText = '';
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: buildPrompt(text)
-    });
-
-    rawText = (response.text ?? '').replace(/```json|```/g, '').trim();
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(buildPrompt(text));
+    const response = await result.response;
+    rawText = response.text().replace(/```json|```/g, '').trim();
   } catch (apiError: any) {
     throw new Error(`Gemini API call failed: ${apiError?.message ?? apiError}`);
   }
@@ -66,25 +64,19 @@ export async function parseUnstructuredTextWithGemini(text: string): Promise<Val
 export async function parseImageWithGemini(base64Image: string, mimeType: string): Promise<ValidatedObligation> {
   if (!API_KEY) throw new Error("VITE_GEMINI_API_KEY is not defined in .env.local");
 
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const ai = new GoogleGenerativeAI(API_KEY);
 
   const rawBase64 = base64Image.replace(/^data:[^;]+;base64,/, '');
 
   let rawText = '';
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: buildPrompt('the attached image/receipt') },
-            { inlineData: { data: rawBase64, mimeType: mimeType || 'image/jpeg' } }
-          ]
-        }
-      ]
-    });
-    rawText = (response.text ?? '').replace(/```json|```/g, '').trim();
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent([
+      buildPrompt('the attached image/receipt'),
+      { inlineData: { data: rawBase64, mimeType: mimeType || 'image/jpeg' } }
+    ]);
+    const response = await result.response;
+    rawText = response.text().replace(/```json|```/g, '').trim();
   } catch (apiError: any) {
     throw new Error(`Gemini Vision API call failed: ${apiError?.message ?? apiError}`);
   }

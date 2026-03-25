@@ -14,7 +14,7 @@ const SECTOR_RATIOS: Record<string, number> = {
 
 export function imputeMissingValues(
   currentPayables: ValidatedObligation[],
-  knownTotalLiabilities: number | null,
+  knownTotalObligations: number | null,
   sectorContext: 'retail' | 'saas' | 'service' | 'unknown' = 'unknown',
   totalRevenue: number | null = null
 ): ValidatedObligation[] {
@@ -23,14 +23,14 @@ export function imputeMissingValues(
   const sumOfKnown = imputedCollection.reduce((acc, obj) => acc + obj.amount, 0);
 
   // Strategy 1: Zero / Default fallback
-  // If we know total liabilities perfectly matches our parsed items, no hidden gaps exist.
-  if (knownTotalLiabilities !== null && sumOfKnown >= knownTotalLiabilities) {
+  // If we know total obligations perfectly matches our parsed items, no hidden gaps exist.
+  if (knownTotalObligations !== null && sumOfKnown >= knownTotalObligations) {
     return imputedCollection;
   }
 
   // Strategy 2/3: Sector Ratio Expansion mapping
   // If we lack concrete data but know revenue, impute an "Estimated Uncaptured Sector Payables" block.
-  if (knownTotalLiabilities === null && totalRevenue !== null && sectorContext !== 'unknown') {
+  if (knownTotalObligations === null && totalRevenue !== null && sectorContext !== 'unknown') {
     const projectedTotal = totalRevenue * SECTOR_RATIOS[sectorContext];
     if (projectedTotal > sumOfKnown) {
         imputedCollection.push({
@@ -49,18 +49,18 @@ export function imputeMissingValues(
   }
 
   // Strategy 4: Adjustment Scaling Factor (Mathematical weighting)
-  // If we have a hard knownTotalLiabilities that is GREATER than what we parsed,
+  // If we have a hard knownTotalObligations that is GREATER than what we parsed,
   // we scale the known variable costs proportionally, OR create a monolithic adjustment block.
-  if (knownTotalLiabilities !== null && knownTotalLiabilities > sumOfKnown) {
-     const uncapturedLiabilityAmt = knownTotalLiabilities - sumOfKnown;
+  if (knownTotalObligations !== null && knownTotalObligations > sumOfKnown) {
+     const uncapturedObligationAmt = knownTotalObligations - sumOfKnown;
      // Add mathematical block to maintain accuracy for Simulator Engine
      imputedCollection.push({
         id: `imputed-scale-gap-${Date.now()}`,
         type: 'payable',
-        amount: uncapturedLiabilityAmt,
+        amount: uncapturedObligationAmt,
         date: new Date().toISOString().split('T')[0],
         due_date: new Date().toISOString().split('T')[0],
-        counterparty: 'Uncategorized Scaled Liabilities',
+        counterparty: 'Uncategorized Scaled Obligations',
         source: 'manual', 
         status: 'flagged',
         is_deferrable: false

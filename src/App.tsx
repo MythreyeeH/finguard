@@ -8,6 +8,7 @@ import ObligationsPage from "@/pages/ObligationsPage";
 import NegotiationPage from "@/pages/NegotiationPage";
 import SettingsPage from "@/pages/SettingsPage";
 import DataIngestionPage from "@/pages/DataIngestionPage";
+import ActionsPage from "@/pages/ActionsPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -26,8 +27,9 @@ function Router() {
       <Route path="/simulator" component={SimulatorPage} />
       <Route path="/obligations" component={ObligationsPage} />
       <Route path="/negotiation" component={NegotiationPage} />
-      <Route path="/settings" component={SettingsPage} />
       <Route path="/ingestion" component={DataIngestionPage} />
+      <Route path="/actions" component={ActionsPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

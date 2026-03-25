@@ -14,7 +14,7 @@ export type SubscriptionPlan = {
  * over a specified time horizon (default 90 days) so that the engine can
  * simulate cash exhaustion accurately.
  */
-export function projectSubscriptionLiabilities(
+export function projectSubscriptionObligations(
   plan: SubscriptionPlan,
   horizonDays: number = 90
 ): ValidatedObligation[] {
@@ -35,8 +35,8 @@ export function projectSubscriptionLiabilities(
       due_date: dateStr,
       counterparty: plan.vendor,
       source: 'subscription',
-      status: 'verified', // Subscriptions map exactly to known liabilities
-      is_deferrable: false // Usually subscriptions are hard liabilities
+      status: 'verified', // Subscriptions map exactly to known obligations
+      is_deferrable: false // Usually subscriptions are hard obligations
     });
 
     // Advance to next period
