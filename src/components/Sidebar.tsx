@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Activity, FileText, ShieldAlert, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Activity, FileText, ShieldAlert, Settings, LogOut, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { icon: Activity, label: "Simulator", href: "/simulator" },
   { icon: ShieldAlert, label: "Obligations", href: "/obligations" },
   { icon: FileText, label: "Negotiation Hub", href: "/negotiation" },
+  { icon: Database, label: "Data Ingestion", href: "/ingestion" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
