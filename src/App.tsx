@@ -10,7 +10,9 @@ import SettingsPage from "@/pages/SettingsPage";
 import DataIngestionPage from "@/pages/DataIngestionPage";
 import ActionsPage from "@/pages/ActionsPage";
 import NotFound from "@/pages/not-found";
-
+import AuthPage from "@/pages/AuthPage";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { Redirect } from "wouter";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -20,16 +22,30 @@ const queryClient = new QueryClient({
   }
 });
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-t-2 border-emerald-500 animate-spin" />
+      </div>
+    );
+  }
+  if (!user) return <Redirect to="/auth" />;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/simulator" component={SimulatorPage} />
-      <Route path="/obligations" component={ObligationsPage} />
-      <Route path="/negotiation" component={NegotiationPage} />
-      <Route path="/ingestion" component={DataIngestionPage} />
-      <Route path="/actions" component={ActionsPage} />
-      <Route path="/settings" component={SettingsPage} />
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/"><ProtectedRoute><Dashboard /></ProtectedRoute></Route>
+      <Route path="/simulator"><ProtectedRoute><SimulatorPage /></ProtectedRoute></Route>
+      <Route path="/obligations"><ProtectedRoute><ObligationsPage /></ProtectedRoute></Route>
+      <Route path="/negotiation"><ProtectedRoute><NegotiationPage /></ProtectedRoute></Route>
+      <Route path="/ingestion"><ProtectedRoute><DataIngestionPage /></ProtectedRoute></Route>
+      <Route path="/actions"><ProtectedRoute><ActionsPage /></ProtectedRoute></Route>
+      <Route path="/settings"><ProtectedRoute><SettingsPage /></ProtectedRoute></Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -38,12 +54,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

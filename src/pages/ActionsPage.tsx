@@ -62,7 +62,7 @@ export default function ActionsPage() {
 
       <Sidebar />
 
-      <main className="flex-1 lg:ml-80 p-6 lg:p-10 relative z-10 transition-all duration-500">
+      <main className="flex-1 ml-20 lg:ml-80 p-6 lg:p-10 relative z-10 transition-all duration-500">
         {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}

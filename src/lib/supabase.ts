@@ -3,16 +3,10 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Lazy client — only instantiated when keys are present to avoid a hard crash during development
-let _client: SupabaseClient | null = null;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 function getClient(): SupabaseClient {
-  if (_client) return _client;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase env vars missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to artifacts/finguard/.env.local");
-  }
-  _client = createClient(supabaseUrl, supabaseAnonKey);
-  return _client;
+  return supabase;
 }
 
 /**
@@ -33,6 +27,43 @@ export async function pushObligationsToDB(obligations: any[]) {
     return { success: true, count: obligations.length, data };
   } catch (err: any) {
     console.error("Supabase error:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Fetches the initial cash balance from the database.
+ */
+export async function fetchInitialBalance(userId?: string) {
+  if (!supabaseUrl || !supabaseAnonKey || !userId) {
+    return { success: false, error: "Supabase not configured or missing userId" };
+  }
+  try {
+    const client = getClient();
+    const { data, error } = await client.from('user_settings').select('cash_balance').eq('user_id', userId).single();
+    if (error) {
+      if (error.code === 'PGRST116') return { success: true, count: 0, data: null }; // No row
+      return { success: false, error };
+    }
+    return { success: true, data: data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Saves the initial cash balance to the database.
+ */
+export async function saveInitialBalance(amount: number, userId?: string) {
+  if (!supabaseUrl || !supabaseAnonKey || !userId) {
+    return { success: false, error: "Supabase not configured or missing userId" };
+  }
+  try {
+    const client = getClient();
+    const { data, error } = await client.from('user_settings').upsert({ user_id: userId, cash_balance: amount });
+    if (error) return { success: false, error };
+    return { success: true, data };
+  } catch (err: any) {
     return { success: false, error: err.message };
   }
 }

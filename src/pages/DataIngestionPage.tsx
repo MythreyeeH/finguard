@@ -14,9 +14,10 @@ import {
   ArrowRight 
 } from "lucide-react";
 import { parseUnstructuredTextWithGemini, parseImageWithGemini } from "@/lib/ingestion/gemini";
-import { parseSMS, parseCSVLine } from "@/lib/ingestion/parsers";
+import { parseSMS, parseCSVBulk } from "@/lib/ingestion/parsers";
 import { processDeduplicationRun } from "@/lib/ingestion/deduplication";
 import { projectSubscriptionObligations, type Frequency } from "@/lib/ingestion/subscriptions";
+import { computeFeatureScores } from "@/lib/decision-engine/state-builder";
 import { pushObligationsToDB } from "@/lib/supabase";
 import { type ValidatedObligation } from "@/lib/ingestion/normalizer";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -53,13 +54,27 @@ export default function DataIngestionPage() {
       await sleep(800);
       const deduped = processDeduplicationRun(incoming, dbContext);
 
+      // FEATURE ENGINEERING AT INGESTION
+      const currentCash = parseFloat(localStorage.getItem('finguard_cash_balance') || "50000");
+      const enriched = deduped.map(ob => {
+        const features = computeFeatureScores(ob, currentCash);
+        return {
+          ...ob,
+          shortfall: features.shortfall,
+          urgency: features.urgency,
+          flexibility_score: features.flexibility_score,
+          failures: features.failures,
+          risk: features.risk
+        };
+      });
+
       setPipelineStep(3); setPipelineStatus('pushing');
       await sleep(1000);
-      const result = await pushObligationsToDB(deduped);
+      const result = await pushObligationsToDB(enriched);
 
       if (!result.success) throw new Error("Supabase push failed");
 
-      setStagedObligations(prev => [...prev, ...deduped]);
+      setStagedObligations(prev => [...prev, ...enriched]);
       setPipelineStep(4); setPipelineStatus('done');
     } catch (err: any) {
       setErrorMsg(err.message || "Pipeline failed");
@@ -100,13 +115,9 @@ export default function DataIngestionPage() {
 
       if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
         const text = await file.text();
-        const lines = text.split('\n').slice(1);
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const ob = parseCSVLine(line);
-          if (ob) parsed.push(ob);
-        }
-        if (!parsed.length) throw new Error("CSV parsed but no valid lines found. Expected: Date, Description, Amount.");
+        const extracted = parseCSVBulk(text);
+        if (!extracted.length) throw new Error("Could not find any valid financial transactions in this CSV.");
+        parsed.push(...extracted);
       } else {
         const base64 = await fileToBase64(file);
         const ob = await parseImageWithGemini(base64, file.type);
@@ -157,7 +168,7 @@ export default function DataIngestionPage() {
       <div className="fixed inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg-mesh.png)`, backgroundSize: "cover" }} />
       <Sidebar />
-      <main className="flex-1 lg:ml-80 p-6 lg:p-10 relative z-10 transition-all duration-500">
+      <main className="flex-1 ml-20 lg:ml-80 p-6 lg:p-10 relative z-10 transition-all duration-500">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
           <div className="flex items-center gap-4 mb-2">
@@ -224,7 +235,7 @@ export default function DataIngestionPage() {
                       <input ref={fileInputRef} type="file" className="hidden" accept=".csv,.jpg,.jpeg,.png,.pdf"
                         onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }} />
                     </div>
-                    {isProcessing && <p className="text-xs text-center text-purple-400 animate-pulse">Parsing file with Gemini...</p>}
+                    {isProcessing && <p className="text-xs text-center text-purple-400 animate-pulse">Running extraction engine...</p>}
                   </div>
                 )}
 

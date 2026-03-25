@@ -128,7 +128,7 @@ export default function ObligationsPage() {
       <div className="fixed inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg-mesh.png)`, backgroundSize: "cover" }} />
       <Sidebar />
-      <main className="flex-1 lg:ml-64 p-6 lg:p-8 relative z-10">
+      <main className="flex-1 ml-20 lg:ml-80 p-6 lg:p-8 relative z-10">
         {/* Header (Same) */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
           <div>

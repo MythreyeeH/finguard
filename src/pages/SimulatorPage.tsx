@@ -21,7 +21,7 @@ export default function SimulatorPage() {
       
       <Sidebar />
 
-      <main className="flex-1 lg:ml-80 p-6 lg:p-10 relative z-10">
+      <main className="flex-1 ml-20 lg:ml-80 p-6 lg:p-10 relative z-10">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
           <div className="flex items-center gap-4 mb-2">

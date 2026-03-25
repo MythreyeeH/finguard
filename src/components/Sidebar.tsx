@@ -9,9 +9,11 @@ import {
   Zap, 
   Target,
   BarChart3,
-  MessageSquare
+  MessageSquare,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Main View", href: "/", category: "Overview" },
@@ -24,6 +26,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { user, signOut } = useAuth();
 
   const groupedNav = NAV_ITEMS.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
@@ -94,8 +97,8 @@ export function Sidebar() {
              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-background rounded-full shadow-lg shadow-emerald-500/50" />
           </div>
           <div className="hidden lg:block overflow-hidden">
-            <p className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors">Alex Chen</p>
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest truncate mt-0.5">Chief Finance Officer</p>
+            <p className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors">{user?.email || "Finguard Exec"}</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest truncate mt-0.5">Authenticated Tenant</p>
           </div>
         </div>
         
@@ -108,6 +111,13 @@ export function Sidebar() {
             <span className="hidden lg:block ml-4 text-sm font-bold tracking-tight">System Preferences</span>
           </div>
         </Link>
+
+        <button onClick={signOut} className={cn(
+            "w-full mt-2 flex items-center px-4 py-3 rounded-2xl transition-all group cursor-pointer text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
+          )}>
+            <LogOut className="w-5 h-5 group-hover:text-red-400 text-muted-foreground" />
+            <span className="hidden lg:block ml-4 text-sm font-bold tracking-tight">Disconnect Session</span>
+        </button>
       </div>
     </aside>
   );

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Settings, Bell, Shield, Link2, User, Palette, Database, ChevronRight, Check, AlertTriangle, Zap, Globe, Moon } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
+import { fetchInitialBalance, saveInitialBalance } from "@/lib/supabase";
 
 type Tab = "profile" | "alerts" | "integrations" | "appearance" | "security";
 
@@ -49,8 +50,24 @@ export default function SettingsPage() {
     Object.fromEntries(ALERT_SETTINGS.map((a) => [a.id, a.defaultOn]))
   );
   const [saved, setSaved] = useState(false);
+  const [cashBalance, setCashBalance] = useState(() => 
+    localStorage.getItem('finguard_cash_balance') || "50000"
+  );
 
-  const handleSave = () => {
+  // Synchronize on load
+  useEffect(() => {
+    fetchInitialBalance().then(res => {
+      if (res.success && res.data && typeof res.data.cash_balance === 'number') {
+        const val = res.data.cash_balance.toString();
+        setCashBalance(val);
+        localStorage.setItem('finguard_cash_balance', val);
+      }
+    });
+  }, []);
+
+  const handleSave = async () => {
+    localStorage.setItem('finguard_cash_balance', cashBalance);
+    await saveInitialBalance(Number(cashBalance));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -60,7 +77,7 @@ export default function SettingsPage() {
       <div className="fixed inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg-mesh.png)`, backgroundSize: "cover" }} />
       <Sidebar />
-      <main className="flex-1 lg:ml-64 p-6 lg:p-8 relative z-10">
+      <main className="flex-1 ml-20 lg:ml-80 p-6 lg:p-8 relative z-10">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-1">
@@ -123,7 +140,6 @@ export default function SettingsPage() {
                     { label: "Full Name", value: "Alex Chen" },
                     { label: "Job Title", value: "CFO" },
                     { label: "Email", value: "alex.chen@finguard.io" },
-                    { label: "Phone", value: "+1 (415) 555-0192" },
                     { label: "Company", value: "Finguard Inc." },
                     { label: "Time Zone", value: "US/Pacific (GMT-7)" },
                   ].map((f) => (
@@ -135,6 +151,15 @@ export default function SettingsPage() {
                       />
                     </div>
                   ))}
+                  <div>
+                      <label className="block text-xs text-emerald-400 font-bold mb-1.5 uppercase tracking-widest">Base Cash Balance ($)</label>
+                      <input
+                        value={cashBalance}
+                        onChange={(e) => setCashBalance(e.target.value)}
+                        type="number"
+                        className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-sm text-emerald-300 font-bold outline-none focus:border-emerald-400 transition-colors"
+                      />
+                    </div>
                 </div>
                 <div className="pt-2 flex justify-end">
                   <button onClick={handleSave} className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all", saved ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]")}>

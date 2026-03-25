@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type Obligation = {
   id: string;
@@ -19,9 +16,16 @@ export type Obligation = {
   penaltyRate?: string;
   canDeferText?: string;
   riskWeight?: number;
+  // Decision Engine Features
+  shortfall?: number;
+  urgency?: number;
+  risk?: number;
+  failures?: number;
+  flexibility_score?: number;
 };
 
 export function useObligations() {
+  const { user } = useAuth();
   const [obligations, setObligations] = useState<Obligation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +43,12 @@ export function useObligations() {
     notes: dbRow.notes || dbRow.ai_reasoning || '',
     penaltyRate: dbRow.penaltyRate || dbRow.penalty_rate,
     canDeferText: dbRow.canDeferText || (dbRow.is_deferrable ? 'Available' : 'None'),
-    riskWeight: dbRow.riskWeight || dbRow.risk_weight
+    riskWeight: dbRow.riskWeight || dbRow.risk_weight,
+    shortfall: dbRow.shortfall,
+    urgency: dbRow.urgency,
+    risk: dbRow.risk,
+    failures: dbRow.failures,
+    flexibility_score: dbRow.flexibility_score
   });
 
   const fetchObligations = async () => {
@@ -63,6 +72,7 @@ export function useObligations() {
     try {
       // Prepare for DB (map back to DB schema if necessary, but here we just pass as is for simplicity assuming DB accepts these keys)
       const dbPayload = {
+        user_id: user?.id,
         name: newObligation.name,
         amount: newObligation.amount,
         due_date: newObligation.dueDate,
