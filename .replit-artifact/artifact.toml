@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Finguard - Liquidity Intelligence Dashboard"
+version = "1.0.0"
+id = "artifacts/finguard"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19693
+
+[services.development]
+run = "pnpm --filter @workspace/finguard run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/finguard", "run", "build" ]
+publicDir = "artifacts/finguard/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19693"
+BASE_PATH = "/"

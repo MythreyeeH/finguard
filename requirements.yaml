@@ -1,0 +1,19 @@
+packages:
+  "recharts": "For the Gap Theory Simulator chart"
+  "framer-motion": "For premium card interactions, entrance animations, and layout transitions"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility to safely merge Tailwind classes"
+  "lucide-react": "Icons for the dashboard"
+
+images:
+  - path: "artifacts/finguard/public/images/bg-mesh.png"
+    description: "Dark luxury fintech background with deep black base, very subtle emerald and electric blue soft radial light leaks, 8k resolution, minimalist"
+    aspect_ratio: "16:9"
+  - path: "artifacts/finguard/public/images/avatar.png"
+    description: "Minimalist geometric illustrated human avatar in electric blue and emerald tones, dark background"
+    aspect_ratio: "1:1"
+
+notes:
+  - Implementing an interactive client-side simulation for the Gap Theory logic
+  - Using framer-motion for high-fidelity interactive card lifts
+  - All mock data is contained within the use-simulator hook
