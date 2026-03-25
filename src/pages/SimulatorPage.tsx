@@ -1,302 +1,186 @@
-import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { Activity, TrendingDown, TrendingUp, Zap, BarChart2, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
+import { Activity, ShieldAlert, TrendingUp, CheckCircle, ArrowRight, Zap, BarChart2, TrendingDown } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
+import { SimulatorChart } from "@/components/SimulatorChart";
+import { useSimulator } from "@/hooks/use-simulator";
 import { cn, formatCurrency } from "@/lib/utils";
 
-const STARTING_BALANCE = 47230;
-const BASE_DAILY_BURN = 8500;
-
-type Scenario = {
-  id: string;
-  name: string;
-  actions: string[];
-  totalInjection: number;
-  addedDays: number;
-  color: string;
-};
-
-const SCENARIOS: Scenario[] = [
-  {
-    id: "none",
-    name: "No Action",
-    actions: [],
-    totalInjection: 0,
-    addedDays: 0,
-    color: "#ef4444",
-  },
-  {
-    id: "minimal",
-    name: "Minimal Response",
-    actions: ["Defer Supplier B (+$5,000)"],
-    totalInjection: 5000,
-    addedDays: 3,
-    color: "#f59e0b",
-  },
-  {
-    id: "balanced",
-    name: "Balanced Strategy",
-    actions: ["Defer Supplier B (+$5,000)", "Pause Marketing (+$2,000)", "Accelerate Invoice (+$8,000)"],
-    totalInjection: 15000,
-    addedDays: 8,
-    color: "#3b82f6",
-  },
-  {
-    id: "aggressive",
-    name: "AI Suggested (Optimal)",
-    actions: ["Defer Supplier B (+$5,000)", "Bridge Loan (+$15,000)", "Accelerate Invoice (+$8,000)", "Pause Marketing (+$2,000)"],
-    totalInjection: 30000,
-    addedDays: 16,
-    color: "#10b981",
-  },
-];
-
-const STRATEGY_CHECKBOXES = [
-  { id: "1", label: "Defer Supplier B Payment", impact: 5000, days: 3 },
-  { id: "2", label: "Apply for Bridge Loan", impact: 15000, days: 8 },
-  { id: "3", label: "Accelerate Client A Invoice", impact: 8000, days: 4 },
-  { id: "4", label: "Pause Marketing Budget", impact: 2000, days: 1 },
-  { id: "5", label: "Negotiate Rent Deferral", impact: 8500, days: 4 },
-  { id: "6", label: "Draw from Credit Line", impact: 20000, days: 10 },
-];
-
-function generateData(injection: number, addedDays: number) {
-  return Array.from({ length: 31 }).map((_, day) => {
-    const crisis = Math.max(0, STARTING_BALANCE - day * BASE_DAILY_BURN);
-    const optimizedBurn = BASE_DAILY_BURN * 0.88;
-    const optimized = Math.max(0, STARTING_BALANCE + (day >= 2 ? injection : 0) - day * optimizedBurn);
-    return { day, name: `D${day}`, crisis, optimized };
-  });
-}
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-black/90 border border-white/10 rounded-xl p-3 text-xs space-y-1 backdrop-blur-md">
-        <p className="text-white/60 font-medium mb-2">{label}</p>
-        {payload.map((p: any) => (
-          <div key={p.name} className="flex justify-between gap-6">
-            <span style={{ color: p.color }}>{p.name === "crisis" ? "Crisis Path" : "Strategy Path"}</span>
-            <span className="text-white font-bold">{formatCurrency(p.value)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
-
 export default function SimulatorPage() {
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [compareMode, setCompareMode] = useState(false);
-  const [selectedScenario, setSelectedScenario] = useState("aggressive");
+  const sim = useSimulator();
 
-  const activeStrategies = STRATEGY_CHECKBOXES.filter((s) => checked[s.id]);
-  const netInjection = activeStrategies.reduce((s, a) => s + a.impact, 0);
-  const addedDays = activeStrategies.reduce((s, a) => s + a.days, 0);
-  const currentDTZ = 5 + addedDays;
-
-  const chartData = useMemo(() => generateData(netInjection, addedDays), [netInjection, addedDays]);
-
-  const toggle = (id: string) => setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
-
-  const scenario = SCENARIOS.find((s) => s.id === selectedScenario) ?? SCENARIOS[3];
+  // Find the optimal scenario for the metric strip or use defaults
+  const optimalSc = sim.scenarios.find(s => s.isOptimal) || sim.scenarios[0];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
+      {/* Premium Background */}
       <div
         className="fixed inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg-mesh.png)`, backgroundSize: "cover" }}
       />
+      
       <Sidebar />
-      <main className="flex-1 lg:ml-64 p-6 lg:p-8 relative z-10">
+
+      <main className="flex-1 lg:ml-80 p-6 lg:p-10 relative z-10">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-blue-400" />
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+              <Activity className="w-6 h-6 text-emerald-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Gap Theory Simulator</h1>
+            <div>
+              <h1 className="text-3xl font-display font-bold text-white tracking-tight">Simulator AI Projections</h1>
+              <p className="text-sm text-muted-foreground uppercase tracking-[0.2em] font-black opacity-60">Multi-Strategy Simulation Engine</p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground ml-12">
-            Model cash flow scenarios and find your optimal survival strategy.
-          </p>
         </motion.div>
 
-        {/* Metric Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Metric Strip (Integrated with real data) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {[
-            { label: "Starting Balance", value: formatCurrency(STARTING_BALANCE), icon: <BarChart2 className="w-4 h-4 text-emerald-400" />, color: "emerald" },
-            { label: "Daily Burn Rate", value: formatCurrency(BASE_DAILY_BURN), icon: <TrendingDown className="w-4 h-4 text-red-400" />, color: "red" },
-            { label: "Net Cash Injected", value: formatCurrency(netInjection), icon: <TrendingUp className="w-4 h-4 text-blue-400" />, color: "blue" },
-            { label: "Days to Zero", value: `${currentDTZ} days`, icon: <Zap className="w-4 h-4 text-amber-400" />, color: currentDTZ < 7 ? "red" : "emerald" },
+            { label: "Eval. Strategies", value: sim.scenarios.length, icon: <BarChart2 className="w-5 h-5 text-emerald-400" />, color: "emerald" },
+            { label: "Optimal Runway", value: `+${optimalSc.runwayAddedDays} Days`, icon: <TrendingUp className="w-5 h-5 text-blue-400" />, color: "blue" },
+            { label: "Max Coverage", value: `${optimalSc.coverage}%`, icon: <CheckCircle className="w-5 h-5 text-amber-400" />, color: "amber" },
+            { label: "System Risk", value: "Low", icon: <ShieldAlert className="w-5 h-5 text-red-400" />, color: "red" },
           ].map((m, i) => (
             <motion.div
               key={m.label}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="glass-card rounded-xl p-4 flex items-center gap-3"
+              transition={{ delay: i * 0.1 }}
+              className="glass-card rounded-[2rem] p-6 flex flex-col gap-4 border-white/5 hover:border-white/10 transition-all group"
             >
-              <div className="p-2 rounded-lg bg-white/5">{m.icon}</div>
-              <div>
-                <p className="text-xs text-muted-foreground">{m.label}</p>
-                <p className={cn("text-lg font-bold", m.color === "red" ? "text-red-400" : m.color === "emerald" ? "text-emerald-400" : m.color === "blue" ? "text-blue-400" : "text-amber-400")}>{m.value}</p>
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                {m.icon}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-white/40 uppercase font-black tracking-widest">{m.label}</p>
+                <p className={cn("text-2xl font-display font-bold", `text-${m.color}-400`)}>{m.value}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
-          {/* Chart */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="xl:col-span-3 glass-card rounded-2xl p-6"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Cash Runway Projection</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">30-day forward simulation</p>
-              </div>
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-0.5 bg-red-400 border-dashed border-t-2 border-red-400" />
-                  <span className="text-muted-foreground">Crisis Path</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-0.5 bg-emerald-400" />
-                  <span className="text-muted-foreground">Strategy Path</span>
-                </div>
-                <div className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold">
-                  Exhaustion: Day {currentDTZ}
-                </div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={340}>
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="crisisGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="optimGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine x="D0" stroke="#3b82f6" strokeWidth={2} strokeDasharray="4 2" label={{ value: "Today", position: "top", fill: "#60a5fa", fontSize: 11 }} />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
-                <Area type="monotone" dataKey="crisis" stroke="#ef4444" strokeWidth={2} strokeDasharray="6 3" fill="url(#crisisGrad)" animationDuration={800} />
-                <Area type="monotone" dataKey="optimized" stroke="#10b981" strokeWidth={2.5} fill="url(#optimGrad)" animationDuration={800} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </motion.div>
-
-          {/* Strategy Panel */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="xl:col-span-1 glass-card rounded-2xl p-6"
-          >
-            <h2 className="text-base font-semibold text-white mb-1">Strategy Levers</h2>
-            <p className="text-xs text-muted-foreground mb-5">Toggle actions to model impact</p>
-            <div className="space-y-3">
-              {STRATEGY_CHECKBOXES.map((s) => (
-                <label key={s.id} className="flex items-start gap-3 cursor-pointer group">
-                  <div
-                    onClick={() => toggle(s.id)}
-                    className={cn(
-                      "mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200",
-                      checked[s.id]
-                        ? "bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                        : "border-white/20 group-hover:border-emerald-500/50"
-                    )}
-                  >
-                    {checked[s.id] && <CheckCircle2 className="w-3 h-3 text-white" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-medium leading-tight", checked[s.id] ? "text-white" : "text-white/70")}>{s.label}</p>
-                    <p className="text-xs text-emerald-400 mt-0.5">+{formatCurrency(s.impact)} · +{s.days}d runway</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-            {Object.values(checked).some(Boolean) && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
-              >
-                <p className="text-xs text-emerald-400 font-medium">Net Impact</p>
-                <p className="text-xl font-bold text-emerald-300 mt-0.5">+{formatCurrency(netInjection)}</p>
-                <p className="text-xs text-white/60 mt-1">Extends runway by <strong className="text-white">+{addedDays} days</strong></p>
-              </motion.div>
-            )}
-          </motion.div>
-        </div>
-
-        {/* Scenario Comparison */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-card rounded-2xl p-6"
+        {/* Global Obligation Matrix */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-12 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 glass-card relative overflow-hidden"
         >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-white">Scenario Comparison</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Compare outcomes across different strategy levels</p>
-            </div>
-            <button
-              onClick={() => setCompareMode(!compareMode)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm font-medium transition-all"
-            >
-              <RefreshCw className="w-4 h-4" />
-              {compareMode ? "Hide Detail" : "Show Detail"}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {SCENARIOS.map((sc) => (
-              <motion.div
+           <div className="flex items-center justify-between mb-8">
+             <div>
+               <h2 className="text-xl font-display font-bold text-white">Evaluated Obligation Matrix</h2>
+               <p className="text-[10px] text-white/40 uppercase font-black tracking-widest mt-1">Foundational data for simulation</p>
+             </div>
+             <div className="px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-tight">Active Matrix v1.2</span>
+             </div>
+           </div>
+           
+           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+             {sim.obligations.map((o) => (
+               <div key={o.id} className="p-4 bg-black/40 border border-white/5 rounded-2xl flex flex-col items-center text-center group hover:bg-white/5 transition-all">
+                 <span className="text-[10px] text-white/30 font-black uppercase tracking-widest mb-2 flex items-center gap-1">
+                   Day {o.dueDay} 
+                   <span className="w-1 h-1 rounded-full bg-red-400" />
+                   R{o.riskWeight}
+                 </span>
+                 <span className="text-xs font-bold text-white truncate w-full mb-1">{o.vendor}</span>
+                 <span className="text-xs text-amber-400 font-black">{formatCurrency(o.amount)}</span>
+               </div>
+             ))}
+           </div>
+        </motion.div>
+
+        {/* Scenarios Grid */}
+        <div className="space-y-12 mb-20">
+          {sim.scenarios.map((sc, index) => {
+            const isOptimal = sc.isOptimal;
+            return (
+              <motion.div 
                 key={sc.id}
-                whileHover={{ y: -3 }}
-                onClick={() => setSelectedScenario(sc.id)}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
                 className={cn(
-                  "p-5 rounded-xl border cursor-pointer transition-all duration-200",
-                  selectedScenario === sc.id
-                    ? "border-white/20 bg-white/8"
-                    : "border-white/8 bg-white/3 hover:border-white/15"
+                  "rounded-[3rem] border p-8 lg:p-12 relative overflow-hidden glass-card transition-all duration-700",
+                  isOptimal ? "bg-emerald-500/[0.03] border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.05)]" : "bg-white/[0.02] border-white/5"
                 )}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sc.color, boxShadow: `0 0 8px ${sc.color}80` }} />
-                  <p className="text-sm font-semibold text-white">{sc.name}</p>
-                </div>
-                <p className="text-2xl font-bold" style={{ color: sc.color }}>{5 + sc.addedDays} <span className="text-sm font-normal text-white/50">days</span></p>
-                <p className="text-xs text-muted-foreground mt-1">+{formatCurrency(sc.totalInjection)} injected</p>
-                {compareMode && sc.actions.length > 0 && (
-                  <ul className="mt-3 space-y-1">
-                    {sc.actions.map((a) => (
-                      <li key={a} className="flex items-center gap-1.5 text-xs text-white/60">
-                        <ArrowRight className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
-                        {a}
-                      </li>
-                    ))}
-                  </ul>
+                {/* Optimal Background Glow */}
+                {isOptimal && (
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] pointer-events-none rounded-full" />
                 )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
+                  {/* Left Analysis Panel */}
+                  <div className="lg:col-span-4 flex flex-col pt-4">
+                    <div className="mb-10">
+                      <div className="flex items-center gap-4 mb-4">
+                        <h2 className={cn("text-3xl font-display font-bold", isOptimal ? "text-emerald-400" : "text-white")}>
+                          {sc.name}
+                        </h2>
+                        {isOptimal && (
+                          <div className="px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-400/50">
+                            Optimal
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                        <p className="text-sm text-white/70 leading-relaxed italic">
+                          <span className="text-emerald-400 font-black uppercase text-[10px] block mb-2 tracking-widest">Algorithm Reasoning</span>
+                          “{sc.description}”
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-10">
+                      <div className="p-4 rounded-3xl bg-black/40 border border-white/5">
+                        <p className="text-[10px] text-white/30 uppercase font-black tracking-[0.2em] mb-2">Stability</p>
+                        <p className={cn("text-2xl font-display font-black", sc.riskLossMinimization > 75 ? "text-emerald-400" : "text-amber-400")}>{sc.riskLossMinimization}%</p>
+                      </div>
+                      <div className="p-4 rounded-3xl bg-black/40 border border-white/5">
+                        <p className="text-[10px] text-white/30 uppercase font-black tracking-[0.2em] mb-2">Runway</p>
+                        <p className="text-2xl font-display font-black text-blue-400">+{sc.runwayAddedDays}D</p>
+                      </div>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-blue-500/[0.03] border border-blue-500/10">
+                        <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          Deferred Logic ({sc.coverage}% Coverage)
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sim.obligations.filter(o => sc.selectedObligations.includes(o.id)).map(o => (
+                            <span key={o.id} className="text-[11px] font-bold text-blue-200 bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20">
+                              {o.vendor}
+                            </span>
+                          ))}
+                        </div>
+                    </div>
+                  </div>
+
+                  {/* Right Visualization Panel */}
+                  <div className="lg:col-span-8 h-[450px] relative rounded-3xl overflow-hidden bg-black/40 border border-white/5">
+                    <SimulatorChart data={sim.chartData} activeScenarioId={sc.id} />
+                    <div className="absolute bottom-6 right-6 flex items-center gap-6">
+                       <div className="flex items-center gap-2">
+                          <div className="w-8 h-1 bg-red-400/30 border-t border-red-400 border-dashed" />
+                          <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">Base Burn</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <div className="w-8 h-1 bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                          <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">Simulation</span>
+                       </div>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
-            ))}
-          </div>
-        </motion.div>
+            );
+          })}
+        </div>
       </main>
     </div>
   );

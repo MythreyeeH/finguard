@@ -1,14 +1,9 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, TrendingDown, Wallet, Zap, Calendar, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSimulator } from "@/hooks/use-simulator";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sidebar } from "@/components/Sidebar";
-import { SimulatorChart } from "@/components/SimulatorChart";
-import { ActionPanel } from "@/components/ActionPanel";
-import { PriorityMatrix } from "@/components/PriorityMatrix";
-import { CounterpartyList } from "@/components/CounterpartyList";
-import { NegotiationHub } from "@/components/NegotiationHub";
-import { IngestionZone } from "@/components/IngestionZone";
+import { CashFlowTimeline } from "@/components/CashFlowTimeline";
 
 export default function Dashboard() {
   const sim = useSimulator();
@@ -23,7 +18,8 @@ export default function Dashboard() {
 
       <Sidebar />
 
-      <main className="flex-1 lg:ml-64 p-4 lg:p-8 relative z-10">
+      {/* Dashboard is focused ONLY on Metrics and Timeline now */}
+      <main className="flex-1 lg:ml-80 p-4 lg:p-10 relative z-10 transition-all duration-300">
         
         {/* Emergency Alert Banner */}
         <motion.div 
@@ -34,131 +30,80 @@ export default function Dashboard() {
           <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 backdrop-blur-md">
             <AlertTriangle className="text-red-400 w-6 h-6 animate-pulse" />
             <p className="text-red-200 text-sm font-medium">
-              <strong className="text-red-400 font-bold tracking-wider">CRITICAL ALERT:</strong> Cash reserves projected to exhaust in {sim.currentDTZ} days. Immediate optimization required.
+              <strong className="text-red-400 font-bold tracking-wider">CRITICAL ALERT:</strong> Liquidity crisis triggered. Runway estimated at {sim.currentDTZ} days.
             </p>
           </div>
         </motion.div>
 
-        {/* Top Liquidity Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Primary Metrics Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <motion.div 
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="glass-card rounded-2xl p-6 relative overflow-hidden"
+            className="glass-card rounded-3xl p-8 relative overflow-hidden border-white/5"
           >
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <svg className="w-16 h-16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            <div className="absolute top-0 right-0 p-6 opacity-5">
+              <Wallet className="w-16 h-16" />
             </div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">Current Cash Balance</h3>
-            <p className="text-4xl font-display font-bold text-white">
+            <h3 className="text-[10px] font-black text-muted-foreground m-b-2 uppercase tracking-[0.2em]">Cash Balance</h3>
+            <p className="text-4xl font-display font-bold text-white tracking-tighter">
               {formatCurrency(sim.currentBalance)}
             </p>
-            <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Verified via Plaid (1m ago)
-            </p>
+            <div className="mt-4 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Live Sync Auto</span>
+            </div>
           </motion.div>
 
           <motion.div 
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="glass-card rounded-2xl p-6 border-amber-500/20"
+            className="glass-card rounded-3xl p-8 border-amber-500/10"
           >
-            <h3 className="text-sm font-medium text-amber-500/80 mb-1">Next Critical Obligation</h3>
-            <p className="text-2xl font-display font-semibold text-white truncate">Rent (HQ)</p>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-amber-400 font-bold">$8,500</span>
-              <span className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-300">Due in 3 days</span>
+            <h3 className="text-[10px] font-black text-amber-500/60 mb-2 uppercase tracking-[0.2em]">Next Critical Ob</h3>
+            <p className="text-2xl font-display font-bold text-white truncate">HQ Lease Renewal</p>
+            <div className="flex items-center gap-3 mt-4">
+              <span className="text-xl font-black text-amber-400">$8,500</span>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 font-black border border-amber-500/20">T-MINUS 3d</span>
             </div>
           </motion.div>
 
           <motion.div 
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className={cn(
-              "glass-card rounded-2xl p-6 flex items-center gap-6",
-              sim.currentDTZ < 7 ? "border-red-500/30 bg-red-500/5" : "border-emerald-500/20"
-            )}
+            className="glass-card rounded-3xl p-8 border-emerald-500/10"
           >
-            {/* Circular Progress Ring */}
-            <div className="relative w-20 h-20 flex-shrink-0">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                <motion.path 
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                  fill="none" 
-                  stroke={sim.currentDTZ < 7 ? "#ef4444" : "#10b981"} 
-                  strokeWidth="3" 
-                  strokeDasharray={`${Math.min(100, (sim.currentDTZ / 30) * 100)}, 100`}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={cn("text-2xl font-display font-bold leading-none", sim.currentDTZ < 7 ? "text-red-400" : "text-emerald-400")}>{sim.currentDTZ}</span>
-                <span className="text-[10px] text-white/60">Days</span>
-              </div>
+            <h3 className="text-[10px] font-black text-emerald-400/60 mb-2 uppercase tracking-[0.2em]">Days to Zero</h3>
+            <p className={cn("text-4xl font-display font-bold tabular-nums", sim.currentDTZ < 7 ? "text-red-400" : "text-emerald-400")}>
+              {sim.currentDTZ} Days
+            </p>
+            <div className="mt-4 flex items-center gap-1.5">
+                <Zap className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] text-emerald-400/80 font-bold">+{sim.currentDTZ - sim.baseDTZ} day extension active</span>
             </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Days to Zero (DTZ)</h3>
-              <p className="text-xs text-white/80 mt-1 leading-relaxed">
-                Runway extended by <span className="text-emerald-400 font-bold">+{sim.currentDTZ - sim.baseDTZ} days</span> via active strategies.
-              </p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="glass-card rounded-3xl p-8 border-red-500/10"
+          >
+            <h3 className="text-[10px] font-black text-red-500/60 mb-2 uppercase tracking-[0.2em]">Daily Burn Rate</h3>
+            <p className="text-4xl font-display font-bold text-white tabular-nums">
+              {formatCurrency(850)}
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+               <TrendingDown className="w-4 h-4 text-red-400" />
+               <span className="text-[10px] text-red-400 font-bold uppercase tracking-widest">+5% MOM</span>
             </div>
           </motion.div>
         </div>
 
-        {/* Bento Grid Main */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Simulator Chart (Left, Span 2) */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
-            className="lg:col-span-2 glass-card rounded-2xl p-6 h-[400px]"
-          >
-            <SimulatorChart data={sim.chartData} activeScenarioId={sim.activeScenarioId} />
-          </motion.div>
-
-          {/* Action Control Panel (Right, Span 1) */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
-            className="lg:col-span-1 glass-card rounded-2xl p-6 h-[400px]"
-          >
-            <ActionPanel scenarios={sim.scenarios} activeScenarioId={sim.activeScenarioId} onSelect={sim.setActiveScenarioId} netImpact={sim.netImpact} />
-          </motion.div>
-        </div>
-
-        {/* Bottom Bento Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
-          {/* Priority Matrix */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="lg:col-span-2 xl:col-span-2 glass-card rounded-2xl p-6"
-          >
-            <PriorityMatrix />
-          </motion.div>
-
-          {/* Counterparty Profiles */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-            className="glass-card rounded-2xl p-6"
-          >
-            <CounterpartyList />
-          </motion.div>
-
-          {/* Ingestion Zone */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-            className="lg:col-span-3 xl:col-span-1"
-          >
-            <IngestionZone />
-          </motion.div>
-        </div>
-
-        {/* Negotiation Hub */}
+        {/* CASH FLOW TIMELINE (MOST IMPORTANT VISUAL) */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-          className="mb-8"
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="glass-card rounded-[2rem] p-10 border-white/5 min-h-[650px] flex flex-col shadow-2xl overflow-hidden relative"
         >
-          {sim.activeScenarioId === 'S0' && (
-            <NegotiationHub />
-          )}
+          <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none">
+             <Activity className="w-96 h-96 text-white" />
+          </div>
+          <CashFlowTimeline data={sim.chartData} />
         </motion.div>
 
       </main>
