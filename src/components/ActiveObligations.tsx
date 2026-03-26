@@ -18,11 +18,18 @@ interface ActiveObligationsProps {
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "N/A";
-  const d = new Date(dateStr);
+  
+  // Try to clean up SQL timestamp or ISO variants
+  const cleaned = dateStr.replace(' ', 'T');
+  const d = new Date(cleaned);
+  
   if (isNaN(d.getTime())) {
-    // Try to fix common weird formats or just return the raw string if short
-    return dateStr.slice(0, 10);
+    // If it's still invalid, try to parse it manually if it looks like YYYY-MM-DD
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) return `${match[2]}/${match[3]}`;
+    return dateStr.length > 10 ? dateStr.slice(0, 10) : dateStr;
   }
+  
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
@@ -45,23 +52,24 @@ export function ActiveObligations({ payables, receivables }: ActiveObligationsPr
               className="glass-card rounded-2xl p-4 flex items-center justify-between border-red-500/10 hover:border-red-500/30 transition-all group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
                   <ArrowDownRight className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white tracking-tight">{p.counterparty}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <Calendar className="w-3 h-3" /> {formatDate(p.due_date || p.date)}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] text-white/40 uppercase font-black tracking-tighter">
-                    <Tag className="w-3 h-3" /> {p.category}
-                  </span>
+                    <span className="flex items-center gap-1 text-[10px] text-white/40 uppercase font-black tracking-tighter">
+                      <Calendar className="w-3 h-3" /> {formatDate(p.due_date || p.date)}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-white/40 uppercase font-black tracking-tighter">
+                      <Tag className="w-3 h-3" /> {p.category}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <p className="text-lg font-black text-red-400 tracking-tighter">
-              -{formatCurrency(Math.abs(p.amount))}
-            </p>
+              <p className="text-lg font-black text-red-400 tracking-tighter">
+                -{formatCurrency(Math.abs(p.amount))}
+              </p>
             </motion.div>
           )) : (
             <p className="text-xs text-white/20 italic p-4 text-center">No upcoming payables</p>
@@ -91,17 +99,18 @@ export function ActiveObligations({ payables, receivables }: ActiveObligationsPr
                 <div>
                   <p className="text-sm font-bold text-white tracking-tight">{r.counterparty}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <Calendar className="w-3 h-3" /> {formatDate(r.due_date || r.date)}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] text-white/40 uppercase font-black tracking-tighter">
-                    <Tag className="w-3 h-3" /> {r.category}
-                  </span>
+                    <span className="flex items-center gap-1 text-[10px] text-white/40 uppercase font-black tracking-tighter">
+                      <Calendar className="w-3 h-3" /> {formatDate(r.due_date || r.date)}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-white/40 uppercase font-black tracking-tighter">
+                      <Tag className="w-3 h-3" /> {r.category}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <p className="text-lg font-black text-emerald-400 tracking-tighter">
-              +{formatCurrency(Math.abs(r.amount))}
-            </p>
+              <p className="text-lg font-black text-emerald-400 tracking-tighter">
+                +{formatCurrency(Math.abs(r.amount))}
+              </p>
             </motion.div>
           )) : (
             <p className="text-xs text-white/20 italic p-4 text-center">No upcoming receivables</p>
