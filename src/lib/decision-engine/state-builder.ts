@@ -82,8 +82,16 @@ export function buildFinancialState(
     new Date(a.due_date || a.date).getTime() - new Date(b.due_date || b.date).getTime()
   );
 
-  let payables = sorted.filter(o => o.type === "payable" || Number(o.amount) < 0);
-  let receivables = sorted.filter(o => o.type === "receivable" || Number(o.amount) > 0);
+  const getInferredType = (o: any) => {
+    if (o.type === "payable" || o.type === "receivable") return o.type;
+    const category = getCategoryFromText(o.counterparty + ' ' + (o.notes || ''));
+    if (["rent", "salary", "loan", "utilities"].includes(category)) return "payable";
+    if (Number(o.amount) < 0) return "payable";
+    return o.type || "receivable"; // Default to receivable only if amount is positive and not a known expense category
+  };
+
+  let payables = sorted.filter(o => getInferredType(o) === "payable");
+  let receivables = sorted.filter(o => getInferredType(o) === "receivable");
 
   // IMPUTATION CASE 1: Missing receivables
   if (receivables.length === 0 && assumedRevenue > 0) {

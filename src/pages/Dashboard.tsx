@@ -1,9 +1,10 @@
-import { AlertTriangle, TrendingDown, Wallet, Zap, Calendar, Activity } from "lucide-react";
+import { AlertTriangle, TrendingDown, Wallet, Zap, Calendar, Activity, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useFinancialState } from "@/hooks/use-financial-state";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sidebar } from "@/components/Sidebar";
 import { CashFlowTimeline } from "@/components/CashFlowTimeline";
+import { ActiveObligations } from "@/components/ActiveObligations";
 
 export default function Dashboard() {
   const state = useFinancialState();
@@ -31,7 +32,6 @@ export default function Dashboard() {
 
       <Sidebar />
 
-      {/* Dashboard is focused ONLY on Metrics and Timeline now */}
       <main className="flex-1 ml-20 lg:ml-80 p-4 lg:p-10 relative z-10 transition-all duration-300">
         
         {/* Emergency Alert Banner */}
@@ -117,13 +117,19 @@ export default function Dashboard() {
         {/* CASH FLOW TIMELINE (MOST IMPORTANT VISUAL) */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="glass-card rounded-[2rem] p-10 border-white/5 min-h-[650px] flex flex-col shadow-2xl overflow-hidden relative"
+          className="glass-card rounded-[2rem] p-10 border-white/5 min-h-[450px] flex flex-col shadow-2xl overflow-hidden relative"
         >
           <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none">
              <Activity className="w-96 h-96 text-white" />
           </div>
           <CashFlowTimeline data={state.chartData} />
         </motion.div>
+
+        {/* DETAILED FINANCIAL STATE (PAYABLES & RECEIVABLES) */}
+        <ActiveObligations 
+          payables={state.payables || []} 
+          receivables={state.receivables || []} 
+        />
 
       </main>
     </div>

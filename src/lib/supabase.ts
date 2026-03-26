@@ -32,6 +32,32 @@ export async function pushObligationsToDB(obligations: any[]) {
 }
 
 /**
+ * Fetches all obligations from the database for the simulator.
+ */
+export async function fetchPayableObligations(userId?: string) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { success: false, error: "Supabase not configured" };
+  }
+  try {
+    const client = getClient();
+    let query = client
+      .from('obligations')
+      .select('*');
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data, error } = await query.order('due_date', { ascending: true });
+    
+    if (error) return { success: false, error };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Fetches the initial cash balance from the database.
  */
 export async function fetchInitialBalance(userId?: string) {
